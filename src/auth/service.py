@@ -44,7 +44,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
-async def authenticate_user(email: str, password: str, db: DbSession) -> Users | bool:
+async def authenticate_user(
+    email: str, password: str, db: AsyncSession
+) -> Users | bool:
 
     try:
         result = await db.execute(select(Users).where(Users.email == email))
@@ -174,7 +176,7 @@ CurrentUser = Annotated[TokenData, Depends(get_current_user)]
 
 
 async def login(
-    db: DbSession,
+    db: AsyncSession,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     response: Response,
 ) -> Tokens:
