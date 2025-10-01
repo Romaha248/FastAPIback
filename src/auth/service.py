@@ -176,7 +176,7 @@ CurrentUser = Annotated[TokenData, Depends(get_current_user)]
 
 
 async def login(
-    db: DbSession,
+    db: AsyncSession,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     response: Response,
 ) -> Tokens:
