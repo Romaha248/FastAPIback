@@ -26,6 +26,6 @@ async def login_for_tokens(
 
 
 @router.post("/refresh", status_code=status.HTTP_200_OK, response_model=Tokens)
-async def refresh_access_token(request: Request, response: Response):
+async def refresh_access_tok(request: Request, response: Response):
     refresh_token = request.cookies.get("refresh_token")
     return refresh_access_token(refresh_token)
