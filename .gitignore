@@ -38,3 +38,7 @@ env/
 # VSCode / PyCharm
 .vscode/
 .idea/
+
+# Environment files
+src/.env
+*.env
