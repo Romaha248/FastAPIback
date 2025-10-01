@@ -8,12 +8,12 @@ import logging
 from starlette import status
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.future import select
+from sqlalchemy.orm import Session
 import jwt
 from jwt.exceptions import PyJWTError
 from uuid import UUID
 from typing import Annotated
 from fastapi import Depends, HTTPException, Response, Request
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 load_dotenv()
@@ -116,13 +116,13 @@ def verify_token(token: str) -> TokenData:
         )
 
 
-async def create_user(db: AsyncSession, register_user_request: RegisterUserRequest):
+def create_user(db: Session, register_user_request: RegisterUserRequest):
 
     try:
-        result_email = await db.execute(
-            select(Users).where(Users.email == register_user_request.email)
+        existing_email = (
+            db.query(Users).filter(Users.email == register_user_request.email).first()
         )
-        existing_email = result_email.scalar_one_or_none()
+
         if existing_email:
             logging.warning(
                 f"Registration failed: Email already exists: {register_user_request.email}"
@@ -132,10 +132,12 @@ async def create_user(db: AsyncSession, register_user_request: RegisterUserReque
                 detail="Email already registered",
             )
 
-        result_username = await db.execute(
-            select(Users).where(Users.username == register_user_request.username)
+        existing_username = (
+            db.query(Users)
+            .filter(Users.username == register_user_request.username)
+            .first()
         )
-        existing_username = result_username.scalar_one_or_none()
+
         if existing_username:
             logging.warning(
                 f"Registration failed: Username already exists: {register_user_request.username}"
@@ -151,8 +153,7 @@ async def create_user(db: AsyncSession, register_user_request: RegisterUserReque
             password=get_password_hash(register_user_request.password),
         )
         db.add(create_user_model)
-        await db.commit()
-        await db.refresh(create_user_model)
+        db.commit()
 
         logging.info(f"Successfully registered user: {register_user_request.email}")
         return create_user_model
@@ -174,14 +175,13 @@ def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]) -> TokenData
 CurrentUser = Annotated[TokenData, Depends(get_current_user)]
 
 
-async def login(
-    db: AsyncSession,
+def login(
+    db: Session,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     response: Response,
 ) -> Tokens:
 
-    result = await db.execute(select(Users).where(Users.email == form_data.username))
-    user = result.scalar_one_or_none()
+    user = db.query(Users).filter(Users.email == form_data.username).first()
 
     if not user or not verify_password(form_data.password, user.password):
         logging.warning(

@@ -4,13 +4,13 @@ from src.entities.todos import Todos
 from src.auth.service import CurrentUser
 from src.enums.todos import TodoCategory
 from sqlalchemy.future import select
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, and_
 import logging
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 
-async def get_user_todos(
-    db: AsyncSession,
+def get_user_todos(
+    db: Session,
     user: CurrentUser,
     category: TodoCategory | None,
     sort_order: str,
@@ -22,24 +22,24 @@ async def get_user_todos(
         raise HTTPException(status_code=401, detail="Auth failed")
 
     try:
-        query = select(Todos).where(Todos.user_id == user.user_id)
+        todos_query = db.query(Todos).filter(Todos.user_id == user.user_id)
 
         if category:
-            query = query.where(Todos.categories == category)
+            todos_query = todos_query.filter(Todos.categories == category)
 
         if search:
-            query = query.where(
-                (Todos.title.ilike(f"%{search}%"))
-                | (Todos.description.ilike(f"%{search}%"))
+            search_pattern = f"%{search}%"
+            todos_query = todos_query.filter(
+                (Todos.title.ilike(search_pattern))
+                | (Todos.description.ilike(search_pattern))
             )
 
         if sort_order.lower() == "asc":
-            query = query.order_by(asc(Todos.priority))
+            todos_query = todos_query.order_by(Todos.priority.asc())
         else:
-            query = query.order_by(desc(Todos.priority))
+            todos_query = todos_query.order_by(Todos.priority.desc())
 
-        result = await db.execute(query)
-        todos = result.scalars().all()
+        todos = todos_query.all()
 
         logging.info(f"Retrieved {len(todos)} todos for user {user.user_id}")
         return [
@@ -62,21 +62,19 @@ async def get_user_todos(
         raise HTTPException(status_code=500, detail="Failed to retrieve todos")
 
 
-async def get_todo_by_id(
-    db: AsyncSession, user: CurrentUser, todo_id: str
-) -> TodoResponse:
+def get_todo_by_id(db: Session, user: CurrentUser, todo_id: str) -> TodoResponse:
 
     if not user:
         logging.warning("Unauthorized access attempt to get_todo_by_id")
         raise HTTPException(status_code=401, detail="Auth failed")
 
     try:
-        result = await db.execute(
-            select(Todos)
-            .where(Todos.id == todo_id)
-            .where(Todos.user_id == user.user_id)
+        todo = (
+            db.query(Todos)
+            .filter(Todos.id == todo_id)
+            .filter(Todos.user_id == user.user_id)
+            .first()
         )
-        todo = result.scalar_one_or_none()
 
         if not todo:
             logging.warning(f"Todo not found: {todo_id} for user {user.user_id}")
@@ -100,9 +98,7 @@ async def get_todo_by_id(
         raise HTTPException(status_code=500, detail="Failed to retrieve todo")
 
 
-async def new_todo(
-    db: AsyncSession, todo_request: TodoRequest, user: CurrentUser
-) -> TodoResponse:
+def new_todo(db: Session, todo_request: TodoRequest, user: CurrentUser) -> TodoResponse:
 
     if not user:
         logging.warning("Unauthorized access attempt to new_todo")
@@ -113,8 +109,7 @@ async def new_todo(
         new_todo = Todos(**todo_data, user_id=user.user_id)
 
         db.add(new_todo)
-        await db.commit()
-        await db.refresh(new_todo)
+        db.commit()
 
         logging.info(f"Created new todo {new_todo.id} for user {user.user_id}")
         return TodoResponse.model_validate(
@@ -133,8 +128,8 @@ async def new_todo(
         raise HTTPException(status_code=500, detail="Failed to create todo")
 
 
-async def update_todo_by_id(
-    db: AsyncSession, todo_request: TodoRequest, user: CurrentUser, todo_id: str
+def update_todo_by_id(
+    db: Session, todo_request: TodoRequest, user: CurrentUser, todo_id: str
 ) -> TodoResponse:
 
     if not user:
@@ -142,22 +137,23 @@ async def update_todo_by_id(
         raise HTTPException(status_code=401, detail="Auth failed")
 
     try:
-        result = await db.execute(
-            select(Todos)
-            .where(Todos.id == todo_id)
-            .where(Todos.user_id == user.user_id)
+        todo = (
+            db.query(Todos)
+            .filter(and_(Todos.id == todo_id, Todos.user_id == user.user_id))
+            .first()
         )
-        todo = result.scalar_one_or_none()
 
         if not todo:
             logging.warning(f"Todo not found for update: {todo_id} user {user.user_id}")
             raise HTTPException(status_code=404, detail="Todo not found")
 
-        for field, value in todo_request.model_dump(exclude_unset=True).items():
-            setattr(todo, field, value)
+        todo.title = todo_request.title
+        todo.description = todo_request.description
+        todo.priority = todo_request.priority
+        todo.complete = todo_request.complete
 
-        await db.commit()
-        await db.refresh(todo)
+        db.add(todo)
+        db.commit()
 
         logging.info(f"Updated todo {todo_id} for user {user.user_id}")
         return TodoResponse.model_validate(todo)
@@ -169,19 +165,18 @@ async def update_todo_by_id(
         raise HTTPException(status_code=500, detail="Failed to update todo")
 
 
-async def delete_todo_by_id(db: AsyncSession, user: CurrentUser, todo_id: str) -> bool:
+def delete_todo_by_id(db: Session, user: CurrentUser, todo_id: str) -> bool:
 
     if not user:
         logging.warning("Unauthorized access attempt to delete_todo_by_id")
         raise HTTPException(status_code=401, detail="Auth failed")
 
     try:
-        result = await db.execute(
-            select(Todos)
-            .where(Todos.id == todo_id)
-            .where(Todos.user_id == user.user_id)
+        todo = (
+            db.query(Todos)
+            .filter(and_(Todos.id == todo_id, Todos.user_id == user.user_id))
+            .first()
         )
-        todo = result.scalar_one_or_none()
 
         if not todo:
             logging.warning(
@@ -189,8 +184,9 @@ async def delete_todo_by_id(db: AsyncSession, user: CurrentUser, todo_id: str) -
             )
             raise HTTPException(status_code=404, detail="Todo not found")
 
-        await db.delete(todo)
-        await db.commit()
+        db.delete(todo)
+        db.commit()
+
         logging.info(f"Deleted todo {todo_id} for user {user.user_id}")
         return True
 
