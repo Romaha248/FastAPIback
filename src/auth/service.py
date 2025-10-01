@@ -152,8 +152,8 @@ async def create_user(db: AsyncSession, register_user_request: RegisterUserReque
             password=get_password_hash(register_user_request.password),
         )
         db.add(create_user_model)
-        await db.commit()
-        await db.refresh(create_user_model)
+        # await db.commit()
+        # await db.refresh(create_user_model)
 
         logging.info(f"Successfully registered user: {register_user_request.email}")
         return create_user_model

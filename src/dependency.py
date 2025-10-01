@@ -7,14 +7,8 @@ from typing import Annotated
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
-        try:
+        async with session.begin():
             yield session
-            await session.commit()
-        except:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
 
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
