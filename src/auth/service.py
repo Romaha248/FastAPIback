@@ -14,6 +14,8 @@ from jwt.exceptions import PyJWTError
 from uuid import UUID
 from typing import Annotated
 from fastapi import Depends, HTTPException, Response, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 load_dotenv()
 
@@ -113,7 +115,7 @@ def verify_token(token: str) -> TokenData:
         )
 
 
-async def create_user(db: DbSession, register_user_request: RegisterUserRequest):
+async def create_user(db: AsyncSession, register_user_request: RegisterUserRequest):
 
     try:
         result_email = await db.execute(
