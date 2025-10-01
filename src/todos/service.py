@@ -1,5 +1,4 @@
 from fastapi import HTTPException
-from src.dependency import DbSession
 from src.todos.schemas import TodoRequest, TodoResponse
 from src.entities.todos import Todos
 from src.auth.service import CurrentUser
@@ -7,10 +6,11 @@ from src.enums.todos import TodoCategory
 from sqlalchemy.future import select
 from sqlalchemy import asc, desc
 import logging
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_user_todos(
-    db: DbSession,
+    db: AsyncSession,
     user: CurrentUser,
     category: TodoCategory | None,
     sort_order: str,
@@ -63,7 +63,7 @@ async def get_user_todos(
 
 
 async def get_todo_by_id(
-    db: DbSession, user: CurrentUser, todo_id: str
+    db: AsyncSession, user: CurrentUser, todo_id: str
 ) -> TodoResponse:
 
     if not user:
@@ -101,7 +101,7 @@ async def get_todo_by_id(
 
 
 async def new_todo(
-    db: DbSession, todo_request: TodoRequest, user: CurrentUser
+    db: AsyncSession, todo_request: TodoRequest, user: CurrentUser
 ) -> TodoResponse:
 
     if not user:
@@ -134,7 +134,7 @@ async def new_todo(
 
 
 async def update_todo_by_id(
-    db: DbSession, todo_request: TodoRequest, user: CurrentUser, todo_id: str
+    db: AsyncSession, todo_request: TodoRequest, user: CurrentUser, todo_id: str
 ) -> TodoResponse:
 
     if not user:
@@ -169,7 +169,7 @@ async def update_todo_by_id(
         raise HTTPException(status_code=500, detail="Failed to update todo")
 
 
-async def delete_todo_by_id(db: DbSession, user: CurrentUser, todo_id: str) -> bool:
+async def delete_todo_by_id(db: AsyncSession, user: CurrentUser, todo_id: str) -> bool:
 
     if not user:
         logging.warning("Unauthorized access attempt to delete_todo_by_id")

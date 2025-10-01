@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from src.dependency import DbSession
 from src.auth.schemas import RegisterUserRequest, TokenData, Tokens
 from src.entities.users import Users
 import logging

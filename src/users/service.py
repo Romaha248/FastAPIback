@@ -1,4 +1,3 @@
-from src.dependency import DbSession
 from src.users.schemas import UserResponse, PasswordChange
 from src.entities.users import Users
 from src.auth.service import get_password_hash, verify_password
@@ -7,9 +6,10 @@ from starlette import status
 from uuid import UUID
 from fastapi import HTTPException
 import logging
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get_user_by_id(db: DbSession, user_id: UUID) -> Users:
+async def get_user_by_id(db: AsyncSession, user_id: UUID) -> Users:
 
     try:
         result = await db.execute(select(Users).where(Users.id == user_id))
@@ -33,7 +33,7 @@ async def get_user_by_id(db: DbSession, user_id: UUID) -> Users:
 
 
 async def change_pass(
-    db: DbSession, user_id: UUID, change_pass: PasswordChange
+    db: AsyncSession, user_id: UUID, change_pass: PasswordChange
 ) -> None:
 
     try:
