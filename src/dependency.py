@@ -1,22 +1,10 @@
 from fastapi import Depends
 from src.database.dbcore import AsyncSessionLocal
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
 
 
-# async def get_db():
-#     async with AsyncSessionLocal() as session:
-#         try:
-#             yield session
-#             await session.commit()
-#         except:
-#             await session.rollback()
-#             raise
-#         finally:
-#             await session.close()
-
-
-async def get_db():
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:
             yield session
