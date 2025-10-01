@@ -1,15 +1,14 @@
+from typing import AsyncGenerator
 from fastapi import Depends
-from src.database.dbcore import AsyncSessionLocal
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Annotated, AsyncGenerator
+from src.database.dbcore import AsyncSessionLocal
+from typing import Annotated
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
-        try:
+        async with session.begin():
             yield session
-        finally:
-            await session.close()
 
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
