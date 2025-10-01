@@ -44,28 +44,28 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
-async def authenticate_user(
-    email: str, password: str, db: AsyncSession
-) -> Users | bool:
+# async def authenticate_user(
+#     email: str, password: str, db: AsyncSession
+# ) -> Users | bool:
 
-    try:
-        result = await db.execute(select(Users).where(Users.email == email))
-        user = result.scalar_one_or_none()
+#     try:
+#         result = await db.execute(select(Users).where(Users.email == email))
+#         user = result.scalar_one_or_none()
 
-        if not user or not verify_password(password, user.password):
-            logging.warning(f"Failed authentication attempt for email: {email}")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Wrong email or pass",
-            )
+#         if not user or not verify_password(password, user.password):
+#             logging.warning(f"Failed authentication attempt for email: {email}")
+#             raise HTTPException(
+#                 status_code=status.HTTP_403_FORBIDDEN,
+#                 detail="Wrong email or pass",
+#             )
 
-        return user
-    except Exception as e:
-        logging.error(f"Error during authentication for {email}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Authentication failed due to server error",
-        )
+#         return user
+#     except Exception as e:
+#         logging.error(f"Error during authentication for {email}: {e}")
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail="Authentication failed due to server error",
+#         )
 
 
 def create_access_token(
@@ -176,12 +176,22 @@ CurrentUser = Annotated[TokenData, Depends(get_current_user)]
 
 
 async def login(
-    db: AsyncSession,
+    db: DbSession,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     response: Response,
 ) -> Tokens:
 
-    user = await authenticate_user(form_data.username, form_data.password, db)
+    result = await db.execute(select(Users).where(Users.email == form_data.username))
+    user = result.scalar_one_or_none()
+
+    if not user or not verify_password(form_data.password, user.password):
+        logging.warning(
+            f"Failed authentication attempt for email: {form_data.username}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Wrong email or pass",
+        )
 
     if not user:
         raise HTTPException(
