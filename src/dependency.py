@@ -13,6 +13,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         except:
             await session.rollback()
             raise
+        finally:
+            session.close()
 
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
