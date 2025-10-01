@@ -4,7 +4,7 @@ from starlette import status
 from typing import Annotated
 from src.dependency import DbSession
 from src.auth.schemas import RegisterUserRequest, Tokens
-from src.auth.service import create_user, login, refersh_access_token
+from src.auth.service import create_user, login, refresh_access_token
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -26,6 +26,6 @@ async def login_for_tokens(
 
 
 @router.post("/refresh", status_code=status.HTTP_200_OK, response_model=Tokens)
-async def refresh_access(request: Request, response: Response):
+async def refresh_access_token(request: Request, response: Response):
     refresh_token = request.cookies.get("refresh_token")
-    return refersh_access_token(refresh_token)
+    return refresh_access_token(refresh_token)

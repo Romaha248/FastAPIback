@@ -22,18 +22,21 @@ ALGORITHM = os.getenv("ALGORITHM")
 JWT_ACCESS_TOKEN_TTL = int(os.getenv("JWT_ACCESS_TOKEN_TTL"))
 JWT_REFRESH_TOKEN_TTL = int(os.getenv("JWT_REFRESH_TOKEN_TTL"))
 
-bcrypt_contex = CryptContext(schemes=["argon2"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/login")
+
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET not set in environment")
 
 
 def get_password_hash(password: str) -> str:
-    return bcrypt_contex.hash(password)
+    return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
 
     try:
-        return bcrypt_contex.verify(plain_password, hashed_password)
+        return pwd_context.verify(plain_password, hashed_password)
     except Exception as e:
         logging.error(f"Password verification failed: {e}")
         return False
@@ -203,7 +206,7 @@ async def login(
         )
 
 
-def refersh_access_token(refresh_token: str) -> Tokens:
+def refresh_access_token(refresh_token: str) -> Tokens:
 
     if not refresh_token:
         raise HTTPException(
