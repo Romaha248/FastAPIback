@@ -28,6 +28,15 @@ class TodoRequest(BaseModel):
         return v
 
 
+class UpdateTodoRequest(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    categories: TodoCategory | None = None
+    priority: int | None = Field(default=None, gt=0, lt=11)
+    complete: bool | None = None
+    deadline: datetime | None = None
+
+
 class TodoResponse(BaseModel):
     id: UUID
     title: str

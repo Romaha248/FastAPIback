@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from src.todos.schemas import TodoRequest, TodoResponse
+from src.todos.schemas import TodoRequest, TodoResponse, UpdateTodoRequest
 from src.entities.todos import Todos
 from src.auth.service import CurrentUser
 from src.enums.todos import TodoCategory
@@ -129,7 +129,7 @@ def new_todo(db: Session, todo_request: TodoRequest, user: CurrentUser) -> TodoR
 
 
 def update_todo_by_id(
-    db: Session, todo_request: TodoRequest, user: CurrentUser, todo_id: str
+    db: Session, todo_request: UpdateTodoRequest, user: CurrentUser, todo_id: str
 ) -> TodoResponse:
 
     if not user:
@@ -147,11 +147,9 @@ def update_todo_by_id(
             logging.warning(f"Todo not found for update: {todo_id} user {user.user_id}")
             raise HTTPException(status_code=404, detail="Todo not found")
 
-        todo.title = todo_request.title
-        todo.description = todo_request.description
-        todo.priority = todo_request.priority
-        todo.complete = todo_request.complete
-        todo.deadline = todo_request.deadline
+        update_data = todo_request.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(todo, key, value)
 
         db.add(todo)
         db.commit()
