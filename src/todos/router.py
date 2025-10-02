@@ -43,7 +43,7 @@ async def create_todo(
 async def update_todo(
     db: DbSession, todo_request: TodoRequest, current_user: CurrentUser, todo_id: str
 ):
-    return await update_todo_by_id(db, todo_request, current_user, todo_id)
+    return update_todo_by_id(db, todo_request, current_user, todo_id)
 
 
 @router.delete("/delete-todo/{todo_id}")
