@@ -17,7 +17,7 @@ class TodoRequest(BaseModel):
     )
     categories: TodoCategory
     priority: int = Field(gt=0, lt=11)
-    complete: bool
+    complete: bool | None = None
     deadline: datetime | None = None
 
     @field_validator("deadline")
