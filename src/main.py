@@ -8,7 +8,7 @@ app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
 
-origins = ["http://localhost:3000", "https://nextjsfront.vercel.app/"]
+origins = ["http://localhost:3000", "https://nextjsfront.vercel.app"]
 
 app.add_middleware(
     CORSMiddleware,
