@@ -151,6 +151,7 @@ def update_todo_by_id(
         todo.description = todo_request.description
         todo.priority = todo_request.priority
         todo.complete = todo_request.complete
+        todo.deadline = todo_request.deadline
 
         db.add(todo)
         db.commit()
